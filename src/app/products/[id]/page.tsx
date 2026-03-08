@@ -1,19 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+'use client'
 
-// Types
-interface ProductImage {
-  id: number
-  url: string
-  isPrimary: boolean
-}
-
-interface Review {
-  id: number
-  userName: string
-  rating: number
-  comment: string
-  date: string
-}
+import { useState, useEffect } from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useParams } from 'next/navigation'
 
 interface Product {
   id: number
@@ -23,239 +13,211 @@ interface Product {
   price: number
   salePrice?: number
   category: string
-  images: ProductImage[]
+  images: string[]
   stock: number
-  sku: string
-  material?: string
-  color?: string
-  sizes?: string[]
-  dimensions?: string
-  weight?: string
-  featured: boolean
   rating: number
   reviewCount: number
-  reviews?: Review[]
-  createdAt: string
 }
 
-// Mock products database (replace with real database in production)
-const products: Product[] = [
-  {
-    id: 1,
-    name: 'Premium Leather Bag',
-    slug: 'premium-leather-bag',
-    description: 'Handcrafted premium leather bag with modern design. Features multiple compartments and adjustable strap. Made from full-grain leather for durability and style.',
-    price: 299.99,
-    salePrice: 249.99,
-    category: 'Bags',
-    images: [
-      { id: 1, url: '/n1.jpeg', isPrimary: true },
-      { id: 2, url: '/n2.jpeg', isPrimary: false },
-      { id: 3, url: '/n3.jpeg', isPrimary: false }
-    ],
-    stock: 45,
-    sku: 'LB-001-BLK',
-    material: 'Full-grain leather',
-    color: 'Black',
-    sizes: ['Small', 'Medium', 'Large'],
-    dimensions: '12" x 10" x 4"',
-    weight: '2.5 lbs',
-    featured: true,
-    rating: 4.8,
-    reviewCount: 89,
-    reviews: [
-      {
-        id: 1,
-        userName: 'John Smith',
-        rating: 5,
-        comment: 'Excellent quality! The leather is soft and durable.',
-        date: '2024-01-15T10:30:00Z'
-      },
-      {
-        id: 2,
-        userName: 'Sarah Johnson',
-        rating: 4,
-        comment: 'Great bag, but shipping took a bit long.',
-        date: '2024-01-14T15:45:00Z'
+export default function ProductPage() {
+  const params = useParams()
+  const [product, setProduct] = useState<Product | null>(null)
+  const [selectedImage, setSelectedImage] = useState('')
+  const [quantity, setQuantity] = useState(1)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // API se product fetch karo
+    const fetchProduct = async () => {
+      try {
+        const response = await fetch(`/api/products/${params.id}`)
+        const data = await response.json()
+        
+        if (data.success) {
+          setProduct(data.product)
+          setSelectedImage(data.product.images[0] || '')
+        }
+      } catch (error) {
+        console.error('Error fetching product:', error)
+      } finally {
+        setLoading(false)
       }
-    ],
-    createdAt: '2024-01-01T00:00:00Z'
-  },
-  {
-    id: 2,
-    name: 'Classic Leather Wallet',
-    slug: 'classic-leather-wallet',
-    description: 'Slim and elegant leather wallet with multiple card slots and a bill compartment. Perfect for everyday use.',
-    price: 89.99,
-    category: 'Wallets',
-    images: [
-      { id: 4, url: '/n2.jpeg', isPrimary: true },
-      { id: 5, url: '/n3.jpeg', isPrimary: false }
-    ],
-    stock: 78,
-    sku: 'LW-002-BRN',
-    material: 'Full-grain leather',
-    color: 'Brown',
-    dimensions: '4.5" x 3.5" x 0.5"',
-    weight: '0.3 lbs',
-    featured: true,
-    rating: 4.9,
-    reviewCount: 256,
-    reviews: [
-      {
-        id: 3,
-        userName: 'Mike Chen',
-        rating: 5,
-        comment: 'Best wallet I\'ve ever owned. Very slim and holds all my cards.',
-        date: '2024-01-13T09:20:00Z'
-      }
-    ],
-    createdAt: '2024-01-01T00:00:00Z'
-  },
-  {
-    id: 3,
-    name: 'Handcrafted Leather Belt',
-    slug: 'handcrafted-leather-belt',
-    description: 'Premium leather belt with classic design. Features a solid brass buckle and hand-finished edges.',
-    price: 79.99,
-    salePrice: 69.99,
-    category: 'Belts',
-    images: [
-      { id: 6, url: '/n3.jpeg', isPrimary: true },
-      { id: 7, url: '/n4.jpeg', isPrimary: false }
-    ],
-    stock: 23,
-    sku: 'LB-003-BLK',
-    material: 'Full-grain leather',
-    color: 'Black',
-    sizes: ['30', '32', '34', '36', '38'],
-    dimensions: '1.5" width',
-    weight: '0.5 lbs',
-    featured: false,
-    rating: 4.7,
-    reviewCount: 89,
-    createdAt: '2024-01-02T00:00:00Z'
+    }
+
+    fetchProduct()
+  }, [params.id])
+
+  const handleAddToCart = () => {
+    if (!product) return
+    alert(`Added ${quantity} ${product.name} to cart!`)
+    // Yahan actual cart logic ayegi
   }
-]
 
-// Helper function to find product by ID
-function findProductById(id: number): Product | undefined {
-  return products.find(product => product.id === id)
-}
-
-// Helper function to find product by slug
-function findProductBySlug(slug: string): Product | undefined {
-  return products.find(product => product.slug === slug)
-}
-
-// GET /api/products/[id] - Get product by ID or slug (public endpoint)
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const productId = params.id
-
-    if (!productId) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Product ID is required' 
-        },
-        { 
-          status: 400,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
-          }
-        }
-      )
-    }
-
-    // Check if ID is numeric (ID) or string (slug)
-    const isNumeric = /^\d+$/.test(productId)
-    let product: Product | undefined
-
-    if (isNumeric) {
-      product = findProductById(parseInt(productId))
-    } else {
-      product = findProductBySlug(productId)
-    }
-
-    if (!product) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Product not found' 
-        },
-        { 
-          status: 404,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
-          }
-        }
-      )
-    }
-
-    // Get related products (same category, excluding current product)
-    const relatedProducts = products
-      .filter(p => p.category === product.category && p.id !== product.id)
-      .slice(0, 4)
-      .map(p => ({
-        id: p.id,
-        name: p.name,
-        slug: p.slug,
-        price: p.price,
-        salePrice: p.salePrice,
-        image: p.images.find(img => img.isPrimary)?.url || p.images[0]?.url,
-        rating: p.rating
-      }))
-
-    return NextResponse.json({
-      success: true,
-      product,
-      relatedProducts
-    }, {
-      status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120'
-      }
-    })
-
-  } catch (error) {
-    console.error('Product GET error:', error)
-    
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: 'Internal server error' 
-      },
-      { 
-        status: 500,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
-        }
-      }
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading product...</p>
+        </div>
+      </div>
     )
   }
-}
 
-// Handle OPTIONS request for CORS preflight
-export async function OPTIONS(request: NextRequest) {
-  return NextResponse.json({}, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    }
-  })
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold mb-4">Product Not Found</h1>
+          <p className="text-gray-400 mb-6">The product you're looking for doesn't exist.</p>
+          <Link 
+            href="/products" 
+            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg hover:shadow-lg transition"
+          >
+            Back to Products
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-black text-white">
+      {/* Simple Navbar */}
+      <nav className="bg-black/80 backdrop-blur-md border-b border-white/10">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-between items-center h-16">
+            <Link href="/" className="text-xl font-bold text-purple-400">
+              Leather Store
+            </Link>
+            <Link href="/products" className="text-white hover:text-purple-400">
+              ← Back to Products
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      <main className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Images Section */}
+          <div>
+            <div className="relative h-96 rounded-xl overflow-hidden mb-4 bg-white/5">
+              <Image
+                src={selectedImage}
+                alt={product.name}
+                fill
+                className="object-cover"
+                priority
+              />
+              {product.salePrice && (
+                <span className="absolute top-4 right-4 px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm border border-green-500/30">
+                  Sale
+                </span>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-4 gap-2">
+              {product.images.map((img, index) => (
+                <button
+                  key={index}
+                  onClick={() => setSelectedImage(img)}
+                  className={`relative h-20 rounded-lg overflow-hidden transition ${
+                    selectedImage === img ? 'ring-2 ring-purple-500' : 'opacity-70 hover:opacity-100'
+                  }`}
+                >
+                  <Image
+                    src={img}
+                    alt={`${product.name} ${index + 1}`}
+                    fill
+                    className="object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Details Section */}
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
+              <p className="text-gray-400">{product.category}</p>
+            </div>
+
+            {/* Rating */}
+            <div className="flex items-center gap-2">
+              <div className="flex text-yellow-400">
+                {'★'.repeat(Math.floor(product.rating))}
+                {'☆'.repeat(5 - Math.floor(product.rating))}
+              </div>
+              <span className="text-gray-400">({product.reviewCount} reviews)</span>
+            </div>
+
+            {/* Price */}
+            <div>
+              {product.salePrice ? (
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl font-bold text-purple-400">
+                    ${product.salePrice}
+                  </span>
+                  <span className="text-xl text-gray-400 line-through">
+                    ${product.price}
+                  </span>
+                </div>
+              ) : (
+                <span className="text-4xl font-bold">${product.price}</span>
+              )}
+            </div>
+
+            {/* Stock Status */}
+            <div>
+              {product.stock > 0 ? (
+                <p className="text-green-400">
+                  ✓ In Stock ({product.stock} available)
+                </p>
+              ) : (
+                <p className="text-red-400">✗ Out of Stock</p>
+              )}
+            </div>
+
+            {/* Description */}
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Description</h3>
+              <p className="text-gray-300 leading-relaxed">{product.description}</p>
+            </div>
+
+            {/* Quantity */}
+            <div>
+              <label className="block text-sm text-gray-400 mb-2">Quantity</label>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  className="w-10 h-10 bg-white/5 rounded-lg hover:bg-white/10 transition"
+                  disabled={product.stock === 0}
+                >
+                  -
+                </button>
+                <span className="w-12 text-center font-medium">{quantity}</span>
+                <button
+                  onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                  className="w-10 h-10 bg-white/5 rounded-lg hover:bg-white/10 transition"
+                  disabled={quantity >= product.stock || product.stock === 0}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            {/* Add to Cart Button */}
+            <button
+              onClick={handleAddToCart}
+              disabled={product.stock === 0}
+              className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold hover:shadow-lg hover:shadow-purple-500/50 transition disabled:opacity-50"
+            >
+              {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>
+  )
 }
