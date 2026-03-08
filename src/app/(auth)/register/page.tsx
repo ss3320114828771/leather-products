@@ -4,32 +4,47 @@ import { useState, FormEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter()
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setSuccess('')
 
     // Simple validation
-    if (!email || !password) {
+    if (!name || !email || !password || !confirmPassword) {
       setError('Please fill in all fields')
       setLoading(false)
       return
     }
 
-    // Simulate login - replace with your actual API call
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      setLoading(false)
+      return
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters')
+      setLoading(false)
+      return
+    }
+
+    // Simulate registration - replace with your actual API call
     setTimeout(() => {
-      if (email === 'sajid.syed@leather.com' && password === 'admin123') {
-        router.push('/dashboard')
-      } else {
-        setError('Invalid email or password')
-      }
+      setSuccess('Registration successful! Redirecting to login...')
+      setTimeout(() => {
+        router.push('/auth/login')
+      }, 2000)
       setLoading(false)
     }, 1000)
   }
@@ -39,7 +54,7 @@ export default function LoginPage() {
       {/* Background Effect */}
       <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-black to-pink-900/20"></div>
       
-      {/* Login Box */}
+      {/* Register Box */}
       <div className="relative w-full max-w-md">
         {/* Bismillah */}
         <div className="text-center mb-6 text-emerald-400 text-xl">
@@ -51,11 +66,11 @@ export default function LoginPage() {
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold mb-2">
               <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Welcome Back
+                Create Account
               </span>
             </h1>
             <p className="text-gray-400 text-sm">
-              Sign in to your account
+              Join Leather E-Commerce today
             </p>
           </div>
 
@@ -66,8 +81,29 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Success Message */}
+          {success && (
+            <div className="mb-4 p-3 bg-green-500/20 border border-green-500 rounded-lg text-green-500 text-sm text-center">
+              {success}
+            </div>
+          )}
+
+          {/* Register Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-2">
+                Full Name
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:border-purple-500 transition text-white"
+                placeholder="Hafiz Sajid Syed"
+                required
+              />
+            </div>
+
             <div>
               <label className="block text-sm text-gray-400 mb-2">
                 Email Address
@@ -94,19 +130,39 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 required
               />
+              <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
             </div>
 
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 text-gray-400">
-                <input type="checkbox" className="rounded border-white/10 bg-white/5" />
-                Remember me
+            <div>
+              <label className="block text-sm text-gray-400 mb-2">
+                Confirm Password
               </label>
-              <Link 
-                href="/auth/forgot-password" 
-                className="text-purple-400 hover:text-purple-300 transition"
-              >
-                Forgot password?
-              </Link>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:border-purple-500 transition text-white"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            <div className="flex items-center gap-2 text-sm">
+              <input 
+                type="checkbox" 
+                className="rounded border-white/10 bg-white/5" 
+                required 
+              />
+              <label className="text-gray-400">
+                I agree to the{' '}
+                <Link href="/terms" className="text-purple-400 hover:text-purple-300 transition">
+                  Terms of Service
+                </Link>{' '}
+                and{' '}
+                <Link href="/privacy" className="text-purple-400 hover:text-purple-300 transition">
+                  Privacy Policy
+                </Link>
+              </label>
             </div>
 
             <button
@@ -117,19 +173,19 @@ export default function LoginPage() {
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                  Signing in...
+                  Creating account...
                 </span>
               ) : (
-                'Sign In'
+                'Sign Up'
               )}
             </button>
           </form>
 
-          {/* Register Link */}
+          {/* Login Link */}
           <p className="text-center text-gray-400 text-sm mt-6">
-            Don't have an account?{' '}
-            <Link href="/auth/register" className="text-purple-400 hover:text-purple-300 transition">
-              Sign up
+            Already have an account?{' '}
+            <Link href="/auth/login" className="text-purple-400 hover:text-purple-300 transition">
+              Sign in
             </Link>
           </p>
         </div>
