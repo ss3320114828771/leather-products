@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// Types
+// Types (same as before)
 interface OrderItem {
   id: number
   productId: number
@@ -45,7 +45,7 @@ interface Order {
   updatedAt: string
 }
 
-// Mock orders database (replace with real database in production)
+// Mock orders database
 const orders: Order[] = [
   {
     id: 'ORD-001',
@@ -136,42 +136,24 @@ const orders: Order[] = [
   }
 ]
 
-// Helper function to find order by ID
+// Helper function
 function findOrderById(id: string): Order | undefined {
   return orders.find(order => order.id === id)
 }
 
-// Helper function to calculate order totals
-function calculateOrderTotals(items: OrderItem[]): { subtotal: number; tax: number; total: number } {
-  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-  const tax = subtotal * 0.08 // 8% tax
-  const shipping = subtotal > 100 ? 0 : 10 // Free shipping over $100
-  const total = subtotal + tax + shipping
-  return { subtotal, tax, total }
-}
-
-// GET /api/orders/[id] - Get order by ID
+// GET - FIXED for Next.js 15
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params
     const orderId = params.id
 
     if (!orderId) {
       return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Order ID is required' 
-        },
-        { 
-          status: 400,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
-          }
-        }
+        { success: false, message: 'Order ID is required' },
+        { status: 400 }
       )
     }
 
@@ -179,88 +161,45 @@ export async function GET(
 
     if (!order) {
       return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Order not found' 
-        },
-        { 
-          status: 404,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
-          }
-        }
+        { success: false, message: 'Order not found' },
+        { status: 404 }
       )
     }
 
-    // Check authentication (simplified - in production, verify user has access)
+    // Check authentication
     const session = request.cookies.get('session')
     if (!session) {
       return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Unauthorized' 
-        },
-        { 
-          status: 401,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
-          }
-        }
+        { success: false, message: 'Unauthorized' },
+        { status: 401 }
       )
     }
 
-    return NextResponse.json({
-      success: true,
-      order
-    }, {
-      status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      }
-    })
+    return NextResponse.json({ success: true, order })
 
   } catch (error) {
     console.error('Order GET error:', error)
-    
     return NextResponse.json(
-      { 
-        success: false, 
-        message: 'Internal server error' 
-      },
-      { 
-        status: 500,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
-        }
-      }
+      { success: false, message: 'Internal server error' },
+      { status: 500 }
     )
   }
 }
 
-// PUT /api/orders/[id] - Update order
+// PUT - FIXED for Next.js 15
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params
     const orderId = params.id
     const body = await request.json()
     const { status, paymentStatus, notes } = body
 
     if (!orderId) {
       return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Order ID is required' 
-        },
+        { success: false, message: 'Order ID is required' },
         { status: 400 }
       )
     }
@@ -269,22 +208,16 @@ export async function PUT(
 
     if (orderIndex === -1) {
       return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Order not found' 
-        },
+        { success: false, message: 'Order not found' },
         { status: 404 }
       )
     }
 
-    // Check authentication and authorization (simplified)
+    // Check authentication
     const session = request.cookies.get('session')
     if (!session) {
       return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Unauthorized' 
-        },
+        { success: false, message: 'Unauthorized' },
         { status: 401 }
       )
     }
@@ -294,28 +227,22 @@ export async function PUT(
       const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled']
       if (!validStatuses.includes(status)) {
         return NextResponse.json(
-          { 
-            success: false, 
-            message: 'Invalid status' 
-          },
+          { success: false, message: 'Invalid status' },
           { status: 400 }
         )
       }
-      orders[orderIndex].status = status
+      orders[orderIndex].status = status as Order['status']
     }
 
     if (paymentStatus) {
       const validPaymentStatuses = ['pending', 'paid', 'failed', 'refunded']
       if (!validPaymentStatuses.includes(paymentStatus)) {
         return NextResponse.json(
-          { 
-            success: false, 
-            message: 'Invalid payment status' 
-          },
+          { success: false, message: 'Invalid payment status' },
           { status: 400 }
         )
       }
-      orders[orderIndex].paymentStatus = paymentStatus
+      orders[orderIndex].paymentStatus = paymentStatus as Order['paymentStatus']
     }
 
     if (notes !== undefined) {
@@ -328,42 +255,29 @@ export async function PUT(
       success: true,
       message: 'Order updated successfully',
       order: orders[orderIndex]
-    }, {
-      status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      }
     })
 
   } catch (error) {
     console.error('Order PUT error:', error)
-    
     return NextResponse.json(
-      { 
-        success: false, 
-        message: 'Internal server error' 
-      },
+      { success: false, message: 'Internal server error' },
       { status: 500 }
     )
   }
 }
 
-// DELETE /api/orders/[id] - Cancel order
+// DELETE - FIXED for Next.js 15
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params
     const orderId = params.id
 
     if (!orderId) {
       return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Order ID is required' 
-        },
+        { success: false, message: 'Order ID is required' },
         { status: 400 }
       )
     }
@@ -372,22 +286,16 @@ export async function DELETE(
 
     if (orderIndex === -1) {
       return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Order not found' 
-        },
+        { success: false, message: 'Order not found' },
         { status: 404 }
       )
     }
 
-    // Check authentication and authorization (simplified)
+    // Check authentication
     const session = request.cookies.get('session')
     if (!session) {
       return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Unauthorized' 
-        },
+        { success: false, message: 'Unauthorized' },
         { status: 401 }
       )
     }
@@ -402,45 +310,24 @@ export async function DELETE(
         success: true,
         message: 'Order cancelled successfully',
         order: orders[orderIndex]
-      }, {
-        status: 200,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
-        }
       })
     } else {
       return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Cannot cancel delivered order' 
-        },
+        { success: false, message: 'Cannot cancel delivered order' },
         { status: 400 }
       )
     }
 
   } catch (error) {
     console.error('Order DELETE error:', error)
-    
     return NextResponse.json(
-      { 
-        success: false, 
-        message: 'Internal server error' 
-      },
+      { success: false, message: 'Internal server error' },
       { status: 500 }
     )
   }
 }
 
-// Handle OPTIONS request for CORS preflight
-export async function OPTIONS(request: NextRequest) {
-  return NextResponse.json({}, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    }
-  })
+// OPTIONS
+export async function OPTIONS() {
+  return NextResponse.json({}, { status: 200 })
 }
